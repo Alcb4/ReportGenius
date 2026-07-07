@@ -162,6 +162,32 @@ If you don't have an API key, you can use any external AI tool (ChatGPT free tie
 
 ---
 
+## Session-only (stateless) mode — no database required
+
+ReportGenius can run entirely without a database — and without any AI API key.
+In session-only mode all data (classes, students, ratings, reports) lives in
+the browser tab's `sessionStorage` and is gone when the tab closes. Reports are
+written with the **free AI flow**: copy the generated prompt into ChatGPT (or
+any AI tool), paste the response back, and the app parses and saves the
+reports. The server keeps just two stateless routes — PDF export and XLSX
+export. This is enough for one full report-writing session, and it means the
+site keeps working even if the database is down or paused.
+
+Two ways to enable it (set in `frontend/.env.local` or your Vercel env):
+
+- `STATELESS_ENABLED=true` — keeps the normal account-based app, but adds a
+  **"Continue without an account (session-only)"** button on the login page.
+  Useful as a demo mode and as a fallback when Supabase is paused.
+- `NEXT_PUBLIC_STATELESS=true` — forces the whole deployment into session-only
+  mode. No login form, no database needed at all (`DATABASE_URL` can be a
+  dummy value for the build). Also set `STATELESS_ENABLED=true`.
+
+API-key generation is intentionally unavailable in this mode (nobody sets up a
+paid key for a non-persistent session, and it avoids exposing an
+unauthenticated LLM proxy). The export routes are rate-limited per IP.
+
+---
+
 ## Security
 
 - Passwords hashed with bcrypt (12 rounds)

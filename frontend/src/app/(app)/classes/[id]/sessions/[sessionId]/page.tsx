@@ -19,35 +19,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, APIError } from "@/lib/api";
-
-// ── Authenticated export download helper ──────────────────────────────────────
-
-async function downloadWithAuth(
-  url: string,
-  filename: string
-): Promise<void> {
-  const token =
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("rg_token")
-      : null;
-  const headers: Record<string, string> = {};
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const response = await fetch(url, { headers });
-  if (!response.ok) {
-    throw new Error(`Export failed: HTTP ${response.status}`);
-  }
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = objectUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(objectUrl);
-}
-
+import { downloadExport as downloadWithAuth } from "@/lib/download";
 import RatingsGrid, {
   GridDiscipline,
   GridStudent,

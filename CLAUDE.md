@@ -2,6 +2,15 @@
 
 ## Architecture Notes
 
+### Stateless / session-only mode (no database)
+- Activated by `NEXT_PUBLIC_STATELESS=true` (whole site) or per-tab via the "Continue without an account" button on `/login` (sets sessionStorage `rg_stateless=1`). Server routes additionally gate on `STATELESS_ENABLED=true`.
+- `apiFetch` (`frontend/src/lib/api.ts`) intercepts all `/api/v1/*` calls when stateless and serves them from an in-browser router: `frontend/src/lib/stateless/localApi.ts` (path-template routes → handlers over a sessionStorage JSON store, `frontend/src/lib/stateless/store.ts`, key `rg_stateless_db`). Handlers mirror each real route's exact response envelope — when changing a real route's shape, update the matching local handler.
+- **Free-track only**: there is NO API-key generation in stateless mode (no server LLM key, no `stateless/generate` route — deliberately, to avoid an unauthenticated LLM proxy). Reports are created via batch-prompt (built client-side by `stateless/prompt-context.ts` + pure `buildBatchPrompt`) → paste into ChatGPT → `parse-reports` (local handler). The generate/redo/bulk endpoints return 501 `STATELESS_FREE_MODE_ONLY`, and the UI hides API-generate buttons when `isStatelessMode` (RatingsGrid, GenerateReportsPanel Section A, review page Generate/Regenerate).
+- Only two prisma-free server routes are used in this mode: `POST /api/v1/stateless/export/pdf` and `POST /api/v1/stateless/export/xlsx` (both take data in the body; shared core in `lib/services/export-core.ts`; rate-limited per IP).
+- Shared pure helpers extracted for reuse: `lib/report-text.ts` (sanitise/word-count), `lib/parse-reports.ts` (paste-back parsing, used by both the real route and the local handler), `lib/services/export-core.ts` (htmlToBuffer/zip/xlsx).
+- `AuthContext` exposes `isStatelessMode` / `enterStatelessMode()`; `isAuthenticated` is true in stateless mode; logout wipes the flag + store. Amber banner in `(app)/layout.tsx`; settings page shows an info card; tests tab hidden on the class page; dashboard empty state offers "Load sample class" (`stateless/sample-data.ts`).
+- Exports in stateless mode go through `lib/download.ts` (`downloadExport`), which POSTs store data to the stateless export routes; in normal mode it does the authenticated GET (replaced the two inline `downloadWithAuth` helpers).
+
 ### Export — CSP & routing (prompt_13_done)
 - All browser-initiated API calls must use **relative URLs** (no `http://localhost:3001`) to comply with `connect-src 'self'` in `next.config.ts`.
 - The session detail page (`frontend/src/app/(app)/classes/[id]/sessions/[sessionId]/page.tsx`) previously computed `API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"`. This is now `const API_URL = ""` so template-literal URLs like `` `${API_URL}/api/v1/...` `` become relative.

@@ -1,10 +1,16 @@
 /**
  * API client for ReportGenius frontend.
  *
- * All requests are routed to NEXT_PUBLIC_API_URL (default: http://localhost:3001).
+ * All requests use same-origin relative URLs (Next.js API routes under /api/v1).
  * JWT is read from localStorage on each request so token changes take effect
  * immediately without needing a page reload.
+ *
+ * In stateless / session-only mode (see lib/stateless/mode.ts) requests are
+ * intercepted before hitting the network and served by an in-browser router
+ * backed by sessionStorage (lib/stateless/localApi.ts).
  */
+
+import { isStateless } from "./stateless/mode";
 
 const API_BASE = "";
 const TOKEN_KEY = "rg_token";
@@ -40,6 +46,31 @@ export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {}
 ): Promise<T> {
+  // Session-only mode: serve /api/v1/* from the in-browser store. The
+  // dynamic import keeps the stateless bundle out of normal-mode pages.
+  // Auth routes are never intercepted — a user in a session-only tab must
+  // still be able to sign in / register (which exits stateless mode).
+  if (
+    isStateless() &&
+    typeof window !== "undefined" &&
+    path.startsWith("/api/v1/") &&
+    !path.startsWith("/api/v1/stateless/") &&
+    !path.startsWith("/api/v1/auth/")
+  ) {
+    const { handleLocal } = await import("./stateless/localApi");
+    const method = (options.method ?? "GET").toUpperCase();
+    const result = await handleLocal(method, path, options.body);
+    if (result.status >= 400) {
+      const errBody = result.json as { error?: string; code?: string };
+      throw new APIError(
+        errBody.error ?? `HTTP ${result.status}`,
+        errBody.code ?? "HTTP_ERROR",
+        result.status
+      );
+    }
+    return result.json as T;
+  }
+
   const token = getToken();
 
   const headers: Record<string, string> = {

@@ -5,6 +5,7 @@ import { buildPrompt, resolveTestInstructionFromConfig } from '@/lib/adapters/ll
 import { ReportLength, RawRating, ProgressionItem, TestContextItem } from '@/lib/adapters/llm/types'
 import { decryptApiKey } from '@/lib/encryption'
 import { getOrCreateAliases, buildNameReplacementMap, buildAliasToNameMap, replaceAliasesInText } from '@/lib/services/alias.service'
+import { countWords, sanitiseLlmResponse } from '@/lib/report-text'
 
 export interface GenerateReportOptions {
   tone: string
@@ -27,29 +28,6 @@ export interface GeneratedReport {
   word_count: number | null
   created_at: Date
   updated_at: Date
-}
-
-function countWords(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length
-}
-
-function sanitiseLlmResponse(raw: string): string {
-  const lines = raw.split('\n')
-  const firstLine = lines[0].trim()
-
-  const isTitleLine =
-    /^(\*{1,2})?student report[:\s]/i.test(firstLine) ||
-    /^#{1,3}\s/.test(firstLine)
-
-  if (isTitleLine) {
-    let rest = lines.slice(1)
-    while (rest.length > 0 && rest[0].trim() === '') {
-      rest = rest.slice(1)
-    }
-    return rest.join('\n').trim()
-  }
-
-  return raw.trim()
 }
 
 async function resolveOrgLlmSettings(orgId: string): Promise<{ provider: string; apiKey: string; model: string }> {

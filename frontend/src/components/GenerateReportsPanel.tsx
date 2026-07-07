@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch, APIError } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,9 @@ export default function GenerateReportsPanel({
   sessionId,
   students,
 }: GenerateReportsPanelProps) {
+  // Session-only mode has no server-side LLM key — only the free-model path
+  const { isStatelessMode } = useAuth();
+
   // Which students already have a saved report
   const [generatedStudentIds, setGeneratedStudentIds] = useState<Set<string>>(
     new Set()
@@ -149,7 +153,7 @@ export default function GenerateReportsPanel({
         batchId: string;
       }
       const result = await apiFetch<BulkResponse>(
-        `/api/v1/sessions/${sessionId}/generate-bulk`,
+        `/api/v1/sessions/${sessionId}/generate/bulk`,
         {
           method: "POST",
           body: {
@@ -279,7 +283,9 @@ export default function GenerateReportsPanel({
         </div>
       </div>
 
-      {/* Section A — API Path */}
+      {/* Section A — API Path + divider (hidden in session-only mode: no server LLM key) */}
+      {!isStatelessMode && (
+      <>
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-5">
         <h2 className="text-base font-semibold text-gray-900 mb-1">
           Generate with API
@@ -334,6 +340,8 @@ export default function GenerateReportsPanel({
         <span className="mx-4 text-sm text-gray-400 bg-gray-50 px-2">or</span>
         <div className="flex-1 border-t border-gray-200" />
       </div>
+      </>
+      )}
 
       {/* Section B — Free Model Path */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-6 py-5">

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiFetch, APIError } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -95,10 +97,25 @@ function ClassCardItem({ cls }: { cls: ClassCard }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { isStatelessMode } = useAuth();
   const [classes, setClasses] = useState<ClassCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+
+  async function handleLoadSample() {
+    setSeeding(true);
+    try {
+      const { seedSampleClass } = await import("@/lib/stateless/sample-data");
+      const classId = seedSampleClass();
+      router.push(`/classes/${classId}`);
+    } catch {
+      setError("Failed to create the sample class.");
+      setSeeding(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -193,12 +210,23 @@ export default function DashboardPage() {
             />
           </svg>
           <p className="text-gray-500 text-sm mb-4">No classes yet. Create your first class to get started.</p>
-          <Link
-            href="/classes/new"
-            className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
-          >
-            Create a class
-          </Link>
+          <div className="flex items-center justify-center gap-3">
+            <Link
+              href="/classes/new"
+              className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            >
+              Create a class
+            </Link>
+            {isStatelessMode && (
+              <button
+                onClick={handleLoadSample}
+                disabled={seeding}
+                className="inline-flex items-center gap-2 rounded-md border border-indigo-600 px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 transition"
+              >
+                {seeding ? "Loading..." : "Load sample class"}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

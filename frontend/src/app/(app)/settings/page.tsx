@@ -51,7 +51,7 @@ function SettingsSkeleton() {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, isStatelessMode } = useAuth();
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -193,6 +193,30 @@ export default function SettingsPage() {
       }
       setDeleting(false);
     }
+  }
+
+  // Session-only mode: no per-org settings and no API keys — reports are
+  // written via the free AI flow (copy prompt → paste response back).
+  if (isStatelessMode) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-sm text-gray-600 space-y-2">
+          <p className="font-medium text-gray-900">Session-only mode</p>
+          <p>
+            No API key is needed. Reports are written with the free AI flow: copy the
+            prompt from the Generate tab, paste it into ChatGPT (or any AI tool), then
+            paste the response back and the app saves the reports.
+          </p>
+          <p>
+            Your classes, ratings, and reports live only in this browser tab. Export
+            anything you want to keep before closing it.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
