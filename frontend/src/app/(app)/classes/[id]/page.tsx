@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useMemo, KeyboardEvent, FormEvent } from "
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, APIError } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1833,6 +1834,8 @@ export default function ClassDetailPage() {
 
   // Student search state
   const [studentSearch, setStudentSearch] = useState('');
+  // Tests module is not available in session-only mode
+  const { isStatelessMode } = useAuth();
 
   function handleSortHeader(field: 'first_name' | 'last_name' | 'student_ref_id') {
     if (sortField !== field) {
@@ -2066,7 +2069,8 @@ export default function ClassDetailPage() {
             {([
               { key: 'sessions' as TabKey, label: 'Report Sessions' },
               { key: 'students' as TabKey, label: 'Students' },
-              { key: 'tests' as TabKey, label: 'Tests' },
+              // Tests module is not available in session-only mode
+              ...(isStatelessMode ? [] : [{ key: 'tests' as TabKey, label: 'Tests' }]),
             ]).map((tab) => (
               <button
                 key={tab.key}

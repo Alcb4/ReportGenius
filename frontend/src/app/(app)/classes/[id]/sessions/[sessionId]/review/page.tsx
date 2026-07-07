@@ -14,39 +14,14 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, APIError } from "@/lib/api";
+import { downloadExport as downloadWithAuth } from "@/lib/download";
+import { useAuth } from "@/context/AuthContext";
 import CompactFilterBar, {
   FilterBarSession,
   FilterBarPatch,
   ClassTest,
   ProgressionData,
 } from "@/components/CompactFilterBar";
-
-// ── Constants ──────────────────────────────────────────────────────────────────
-
-// Use relative URLs so all requests go through the Next.js server (same origin).
-// This avoids CSP violations that occur when calling the Express backend on port 3001 directly.
-
-// ── Authenticated export download ─────────────────────────────────────────────
-
-async function downloadWithAuth(url: string, filename: string): Promise<void> {
-  const token =
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("rg_token")
-      : null;
-  const headers: Record<string, string> = {};
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error(`Export failed: HTTP ${response.status}`);
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = objectUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(objectUrl);
-}
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -141,6 +116,8 @@ export default function ReviewPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Session-only mode: no server LLM key — the free AI panel is the generation path
+  const { isStatelessMode } = useAuth();
 
   const classId =
     typeof params.id === "string" ? params.id : (params.id?.[0] ?? "");
@@ -178,8 +155,9 @@ export default function ReviewPage() {
   const [progressionData, setProgressionData] = useState<ProgressionData | null>(null);
   const [filtersChangedSinceGenerate, setFiltersChangedSinceGenerate] = useState(false);
 
-  // Free AI Model panel state
-  const [freeModelExpanded, setFreeModelExpanded] = useState(false);
+  // Free AI Model panel state (open by default in session-only mode — it is
+  // the only generation path there)
+  const [freeModelExpanded, setFreeModelExpanded] = useState(isStatelessMode);
   const [freeModelPaste, setFreeModelPaste] = useState("");
   const [freeModelCopyStatus, setFreeModelCopyStatus] = useState<"idle" | "copied">("idle");
   const [freeModelParseStatus, setFreeModelParseStatus] = useState<"idle" | "parsing" | "success" | "error">("idle");
@@ -313,11 +291,12 @@ export default function ReviewPage() {
     setShowMoreRatingsHistory(false);
     setSaveStatus("saved");
     setStudentLoading(true);
-    // Reset free model panel
+    // Reset free model panel (kept open in session-only mode — it is the
+    // only generation path there)
     setFreeModelPaste("");
     setFreeModelParseStatus("idle");
     setFreeModelError(null);
-    setFreeModelExpanded(false);
+    setFreeModelExpanded(isStatelessMode);
 
     const sessionReport = sessionReports.get(currentStudentId);
 
@@ -337,7 +316,9 @@ export default function ReviewPage() {
             }),
           apiFetch(`/api/v1/students/${currentStudentId}/reports${excludeParam}`)
             .then((r: unknown) => {
-              const all = (r as { reports: HistoryReport[] }).reports ?? [];
+              // Route returns { data: [...] } — the old `.reports` read meant
+              // this history panel was always empty.
+              const all = (r as { data?: HistoryReport[] }).data ?? [];
               // Belt-and-braces client-side filter in case the report was just created.
               const filtered = sessionReport
                 ? all.filter((h) => h.id !== sessionReport.id)
@@ -370,7 +351,7 @@ export default function ReviewPage() {
     }
 
     loadStudent();
-  }, [currentStudentId, students.length, sessionReports]);
+  }, [currentStudentId, students.length, sessionReports, isStatelessMode]);
 
   // ── Word count live update ─────────────────────────────────────────────────
 
@@ -1190,6 +1171,14 @@ export default function ReviewPage() {
                       Go to Ratings Grid
                     </Link>
                   </>
+                ) : isStatelessMode ? (
+                  <>
+                    <p className="text-sm text-gray-500">No report yet for this student.</p>
+                    <p className="text-sm text-gray-500 max-w-sm text-center">
+                      Use the <span className="font-medium text-gray-700">Free AI Model</span> panel:
+                      copy the prompt into ChatGPT (or any AI tool), then paste the response back.
+                    </p>
+                  </>
                 ) : (
                   <>
                     <p className="text-sm text-gray-500">No report yet for this student.</p>
@@ -1245,6 +1234,7 @@ export default function ReviewPage() {
           {currentReport && (
             <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
+                {!isStatelessMode && (
                 <button
                   onClick={() => setShowRedoConfirm(true)}
                   disabled={redoing}
@@ -1256,6 +1246,7 @@ export default function ReviewPage() {
                 >
                   {redoing ? "Regenerating..." : filtersChangedSinceGenerate ? "Regenerate (filters changed)" : "Regenerate"}
                 </button>
+                )}
                 <button
                   onClick={() =>
                     downloadWithAuth(

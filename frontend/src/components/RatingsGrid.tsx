@@ -40,6 +40,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { apiFetch, APIError } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import SparklineGrid from "@/components/SparklineGrid";
 
 // ── Drag-to-grade types ───────────────────────────────────────────────────────
@@ -850,6 +851,8 @@ function useRatingsGridGeneration(
   onBulkBatchStarted: (batchId: string) => void,
   setSaveError: React.Dispatch<React.SetStateAction<string | null>>
 ): RatingsGridGeneration {
+  // Session-only mode: no server LLM key — API generation routes to the free flow
+  const { isStatelessMode } = useAuth();
   const [generatingStudentId, setGeneratingStudentId] = useState<string | null>(null);
   const [bulkBatchId, setBulkBatchId] = useState<string | null>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
@@ -858,6 +861,12 @@ function useRatingsGridGeneration(
 
   const handleGenerateSingle = useCallback(
     async (studentId: string) => {
+      if (isStatelessMode) {
+        setSaveError(
+          "API generation is not available in session-only mode — use the Generate tab's free AI flow (copy the prompt, paste the response back)."
+        );
+        return;
+      }
       setGeneratingStudentId(studentId);
       try {
         interface GenerateResponse {
@@ -880,7 +889,7 @@ function useRatingsGridGeneration(
         setGeneratingStudentId(null);
       }
     },
-    [sessionId, onReportCreated, setSaveError]
+    [sessionId, onReportCreated, setSaveError, isStatelessMode]
   );
 
   const handleBulkGenerate = useCallback(async () => {
@@ -929,6 +938,9 @@ export default function RatingsGrid({
   onBulkBatchStarted,
   topics,
 }: RatingsGridProps) {
+  // Session-only mode: no server LLM key — bulk API generation is hidden
+  const { isStatelessMode } = useAuth();
+
   // 1. Normalize inputs
   const normalizedStudents = students ?? [];
   const normalizedDisciplines = useMemo(() => disciplines ?? [], [disciplines]);
@@ -1239,7 +1251,7 @@ export default function RatingsGrid({
                 Unsaved
               </span>
             )}
-            {!isReadOnly && (
+            {!isReadOnly && !isStatelessMode && (
               <button
                 onClick={handleBulkGenerate}
                 disabled={anyRatedCount === 0 || isBulkRunning}

@@ -45,7 +45,7 @@ const NAV_ITEMS = [
  * with no useEffect.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, isStatelessMode, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -136,13 +136,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            Sign out
+            {isStatelessMode ? "End session" : "Sign out"}
           </button>
         </div>
       </aside>
 
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0">
+        {/* Session-only mode banner */}
+        {isStatelessMode && (
+          <div className="shrink-0 bg-amber-100 border-b border-amber-300 px-6 py-2 text-sm text-amber-900 text-center">
+            Session-only mode — nothing is saved after this tab closes.
+          </div>
+        )}
+
         {/* Top bar */}
         <header className="flex items-center h-16 px-6 bg-white border-b border-gray-200 shrink-0">
           {/* Mobile menu button */}
@@ -167,7 +174,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            Sign out
+            {isStatelessMode ? "End session" : "Sign out"}
           </button>
         </header>
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, APIError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { isStatelessBuild } from "@/lib/stateless/mode";
 
 interface LoginResponse {
   token: string;
@@ -12,7 +13,32 @@ interface LoginResponse {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, enterStatelessMode } = useAuth();
+  const statelessOnly = isStatelessBuild();
+
+  // Only offer session-only entry when the deployment enabled it —
+  // STATELESS_ENABLED is server-only, so ask the status endpoint.
+  const [statelessAvailable, setStatelessAvailable] = useState(statelessOnly);
+  useEffect(() => {
+    if (statelessOnly) return;
+    let cancelled = false;
+    fetch("/api/v1/stateless/status")
+      .then((r) => (r.ok ? r.json() : { enabled: false }))
+      .then((d: { enabled?: boolean }) => {
+        if (!cancelled && d.enabled) setStatelessAvailable(true);
+      })
+      .catch(() => {
+        // status unreachable — keep the button hidden
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statelessOnly]);
+
+  function handleStatelessEntry() {
+    enterStatelessMode();
+    router.push("/dashboard");
+  }
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,10 +75,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">ReportGenius</h1>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
+          <p className="mt-2 text-gray-600">
+            {statelessOnly ? "Session-only mode" : "Sign in to your account"}
+          </p>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-200">
+          {!statelessOnly && (
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div>
               <label
@@ -106,7 +135,24 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
+          )}
 
+          {statelessAvailable && (
+          <div className={statelessOnly ? "" : "mt-6 pt-6 border-t border-gray-200"}>
+            <button
+              type="button"
+              onClick={handleStatelessEntry}
+              className="w-full rounded-md border border-indigo-600 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-600 shadow-sm hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition"
+            >
+              Continue without an account (session-only)
+            </button>
+            <p className="mt-2 text-center text-xs text-gray-500">
+              Your data lives only in this browser tab and is gone when you close it.
+            </p>
+          </div>
+          )}
+
+          {!statelessOnly && (
           <p className="mt-6 text-center text-sm text-gray-600">
             Don&apos;t have an account?{" "}
             <Link
@@ -116,6 +162,7 @@ export default function LoginPage() {
               Create one
             </Link>
           </p>
+          )}
         </div>
       </div>
     </div>

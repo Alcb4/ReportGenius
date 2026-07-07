@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { authenticate } from '@/lib/authenticate'
+import { countWords } from '@/lib/report-text'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,10 +13,6 @@ const UpdateReportSchema = z.object({
   (d) => d.edited_content !== undefined || d.status !== undefined,
   { message: 'At least one of edited_content or status is required' }
 )
-
-function countWords(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length
-}
 
 export async function GET(
   req: NextRequest,

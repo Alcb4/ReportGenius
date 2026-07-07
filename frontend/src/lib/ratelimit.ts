@@ -71,12 +71,15 @@ async function upstashLimit(key: string, config: LimiterConfig): Promise<boolean
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-export type RateLimitPreset = 'auth' | 'llm' | 'export' | 'general'
+export type RateLimitPreset = 'auth' | 'llm' | 'export' | 'exportBurst' | 'general'
 
 const PRESETS: Record<RateLimitPreset, LimiterConfig> = {
   auth:    { maxRequests: 5,  windowSeconds: 900 }, // 5 req / 15 min
   llm:     { maxRequests: 10, windowSeconds: 3600 }, // 10 req / hour
   export:  { maxRequests: 10, windowSeconds: 3600 }, // 10 req / hour
+  // Per-report export workflows legitimately fire dozens of requests in a
+  // session (e.g. exporting each student's PDF individually).
+  exportBurst: { maxRequests: 120, windowSeconds: 3600 }, // 120 req / hour
   general: { maxRequests: 60, windowSeconds: 60 },   // 60 req / min
 }
 
