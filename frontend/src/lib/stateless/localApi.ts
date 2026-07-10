@@ -324,8 +324,8 @@ route("POST", "/api/v1/classes/:classId/students/bulk", (p, body) => {
   rows.forEach((row, i) => {
     const first_name = typeof row.first_name === "string" ? row.first_name.trim() : "";
     const last_name = typeof row.last_name === "string" ? row.last_name.trim() : "";
-    if (!first_name || !last_name) {
-      fail("first_name and last_name must be at least 1 character", "VALIDATION_ERROR", 400);
+    if (!first_name) {
+      fail("first_name must be at least 1 character", "VALIDATION_ERROR", 400);
     }
     const stamp = new Date(base + i).toISOString();
     db.students.push({
