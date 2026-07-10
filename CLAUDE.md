@@ -2,6 +2,11 @@
 
 ## Architecture Notes
 
+### Vercel deployment
+- The repo root has two services (`frontend/` Next.js app, `backend/` Express/BullMQ worker); `backend/` is not Vercel-deployable (long-running worker), so only `frontend/` is deployed.
+- The Vercel project's **Root Directory is set to `frontend`** (Project Settings → General). `vercel.json` must live at `frontend/vercel.json` to be read at all — a root-level `vercel.json` is silently ignored once Root Directory is set. It currently only declares the `/api/cron/cleanup` cron; the Next.js framework/build is auto-detected, no explicit build/install commands needed.
+- If deploys stop updating (stuck on an old build despite pushes to `main`), check **Settings → Git** first — the GitHub integration can silently disconnect with no visible error. Reconnecting doesn't retroactively build missed commits; push a new commit (an empty one is fine) to force the webhook.
+
 ### Stateless / session-only mode (no database)
 - Activated by `NEXT_PUBLIC_STATELESS=true` (whole site) or per-tab via the "Continue without an account" button on `/login` (sets sessionStorage `rg_stateless=1`). Server routes additionally gate on `STATELESS_ENABLED=true`.
 - `apiFetch` (`frontend/src/lib/api.ts`) intercepts all `/api/v1/*` calls when stateless and serves them from an in-browser router: `frontend/src/lib/stateless/localApi.ts` (path-template routes → handlers over a sessionStorage JSON store, `frontend/src/lib/stateless/store.ts`, key `rg_stateless_db`). Handlers mirror each real route's exact response envelope — when changing a real route's shape, update the matching local handler.
