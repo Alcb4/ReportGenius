@@ -986,6 +986,11 @@ route("GET", "/api/v1/sessions/:sessionId/batch-prompt", (p, _b, query) => {
 
   const students = studentIds.map((id) => db.students.find((x) => x.id === id));
   if (students.some((x) => !x)) fail("One or more students not found", "STUDENT_NOT_FOUND", 404);
+  // Every student must belong to this session's class, because that is the
+  // roster the alias map is built from. Anyone outside it would have no alias.
+  if (students.some((x) => x!.class_id !== s.class_id)) {
+    fail("One or more students are not in this session's class", "STUDENT_NOT_IN_CLASS", 400);
+  }
 
   // Same alias privacy pipeline as the real route — the prompt carries
   // Student_NN aliases, never real names.

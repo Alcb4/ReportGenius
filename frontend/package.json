@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate --schema=./prisma/schema.prisma"
+    "postinstall": "prisma generate --schema=./prisma/schema.prisma",
+    "check:pii": "tsx scripts/pii-probe.ts"
   },
   "prisma": {
     "schema": "./prisma/schema.prisma"
@@ -43,6 +44,7 @@
     "eslint-config-next": "16.2.1",
     "prisma": "^5.22.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }

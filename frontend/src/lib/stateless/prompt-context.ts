@@ -39,6 +39,24 @@ function topicRatingsFor(db: StatelessDB, sessionId: string, studentId: string) 
   return rows.length > 0 ? rows : undefined;
 }
 
+/**
+ * The alias for a student, or a hard failure.
+ *
+ * An alias is missing only when the student is not in the session's class, so
+ * this is a caller bug rather than a user error — but the safe outcome is no
+ * prompt at all, never a prompt carrying a real name.
+ */
+function requireAlias(aliasMap: AliasMap, student: LocalStudent): string {
+  const alias = aliasMap.studentIdToAlias.get(student.id);
+  if (!alias) {
+    throw new Error(
+      `No alias for student ${student.id} — they are not in this session's class. ` +
+        `Refusing to build a prompt rather than risk sending a real name.`
+    );
+  }
+  return alias;
+}
+
 export interface LocalAliasContext {
   aliasMap: AliasMap;
   nameToAlias: Map<string, string>;
@@ -69,7 +87,11 @@ export function buildBatchPayloadsFromDB(
 ): BatchStudentPayload[] {
   return students.map((student) => ({
     id: student.id,
-    firstName: aliasMap.studentIdToAlias.get(student.id) ?? student.first_name,
+    // Fail closed. This used to fall back to `student.first_name` when the
+    // alias map had no entry — which put a real name straight into the prompt
+    // for any student outside the session's class. A privacy control must
+    // never degrade silently into the thing it exists to prevent.
+    firstName: requireAlias(aliasMap, student),
     gender: student.gender ?? "unspecified",
     ratings: ratingsFor(db, session.id, student.id),
     topics: session.topics_covered,
