@@ -2,6 +2,11 @@
 
 ## Architecture Notes
 
+### Sibling product: Report Genius Solo (`~/report-genius-solo`)
+- A standalone splinter of session-only mode lives in its own repo, `Alcb4/report-genius-solo` (deployed: https://report-genius-solo.vercel.app). One run, no class, no session, no account; a six-step wizard over `localStorage`; export is the browser's print dialog, so it is a **fully static export with no backend**.
+- It **ports five files verbatim** from here and they must stay in sync — a change to any of them belongs in both repos: `lib/alias-core.ts`, `lib/adapters/llm/prompt-builder.ts`, `lib/adapters/llm/types.ts`, `lib/report-text.ts`, `lib/stateless/discipline-library.ts`.
+- This repo's stateless mode was deliberately **left in place**, not deleted, so nothing here breaks while the splinter is evaluated. Retiring it is a separate decision.
+
 ### Vercel deployment
 - The repo root has two services (`frontend/` Next.js app, `backend/` Express/BullMQ worker); `backend/` is not Vercel-deployable (long-running worker), so only `frontend/` is deployed.
 - The Vercel project's **Root Directory is set to `frontend`** (Project Settings → General). `vercel.json` must live at `frontend/vercel.json` to be read at all — a root-level `vercel.json` is silently ignored once Root Directory is set. It currently only declares the `/api/cron/cleanup` cron; the Next.js framework/build is auto-detected, no explicit build/install commands needed.
