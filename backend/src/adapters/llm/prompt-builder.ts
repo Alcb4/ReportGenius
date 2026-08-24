@@ -220,7 +220,11 @@ function buildHeader(
 
   rules.push(
     ``,
-    `${pronounRule}. PRONOUNS`,
+    `${pronounRule}. NAME AND PRONOUNS`,
+    `   Use the student's name EXACTLY ONCE, in the opening sentence,`,
+    `   written exactly as it appears in their block.`,
+    `   Refer to them by pronoun everywhere else — do not repeat the name,`,
+    `   and do not open every report with the same sentence pattern.`,
     `   Use the student's specified pronouns consistently throughout.`,
     `   Never switch pronouns mid-report.`,
     ``,
