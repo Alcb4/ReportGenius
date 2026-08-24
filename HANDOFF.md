@@ -1,4 +1,7 @@
-# Handoff — Report Genius — 2026-08-23
+# Handoff — Report Genius (hosted) — 2026-08-24
+
+> The standalone splinter now has its own handoff at
+> `~/report-genius-solo/HANDOFF.md`. This file covers the **hosted** app only.
 
 ## Goal
 Split the database-free "session-only" mode out of the hosted app into its own
@@ -16,9 +19,9 @@ up the duplicate repos left over from earlier rebuilds.
   nowhere else, not even on GitHub) and `env-backup/` (9 real `.env` files).
 - **`report-genius-solo` built and shipped.** New repo `Alcb4/report-genius-solo`
   (private, `main`), live at https://report-genius-solo.vercel.app. Six-step
-  wizard over `localStorage`; generation in batches of 5; export via the
-  browser's print dialog, which is what keeps it a fully static export with no
-  backend. `npm run check` = 30 assertions, plus lint/tsc/build — all clean.
+  wizard over `localStorage`; export via the browser's print dialog, which is
+  what keeps it a fully static export with no backend. See that repo's own
+  HANDOFF.md for its current state.
 - **A real PII leak found and fixed in BOTH apps.** Prompt names resolved as
   `aliasMap.get(id) ?? student.first_name`; a student outside the session's class
   had no alias, so the fallback put their **real first name into the LLM prompt**.
@@ -28,40 +31,42 @@ up the duplicate repos left over from earlier rebuilds.
   committed in either history, and the on-disk ones are `git check-ignore`-clean.
   Only `.env.example` is tracked and it holds placeholders.
 
+**Landed since (2026-08-24)**
+- `03a0bfa` — stateless prompts fail closed when a student has no alias (a real
+  PII leak; see `npm run check:pii`).
+- `ea7cae0` (PR #1) — the prompt now names the student once instead of using
+  pronouns throughout. Mirrored from the solo app; `prompt-builder.ts` is
+  byte-identical across both repos again, verified by diff.
+
 **Done but NOT verified**
-- **Neither app has had a real-browser walkthrough.** All the logic is covered by
-  automated checks, but nobody has clicked through either wizard. This is the
-  biggest gap.
-- **The hosted app's Vercel build is still unconfirmed** — carried over from the
-  last session and still open. `03a0bfa` was just pushed, which should trigger one.
+- **This hosted app has had no browser walkthrough.** (The solo app was tested
+  locally by the user on 2026-08-24 and approved; this one has not been.)
+- **The hosted app's Vercel build is still unconfirmed** — now three sessions
+  old, with two more commits landed since. Check **Settings → Git** first: the
+  GitHub integration disconnects silently with no visible error.
 
 **Open / awaiting a decision**
 - `~/repo-archive/env-backup/` holds plaintext API keys.
 - Solo app has Deployment Protection ON, so its URL asks for a Vercel login.
 
 ## Next step
-Open https://report-genius-solo.vercel.app and click through all six steps with a
-real class list — paste a roster, pick disciplines, skip tests, rate, copy a batch
-prompt into ChatGPT, paste the reply back, print. That is the one thing no
-automated check can substitute for.
+Confirm the hosted app's Vercel deploy is actually live and building from `main`.
+It has been unconfirmed across three sessions and nothing else here can be
+trusted until it is.
 
 ## Open questions
-- **PR flow:** this session pushed straight to `main` on both repos. The standing
-  preference is to branch for new work — confirm whether to enforce PRs from here.
 - Are any keys in `~/repo-archive/env-backup/` still live (salvage, delete, or
   rotate)?
 - Should the hosted app's stateless mode eventually be retired now the splinter
   exists, or do both ship?
 
 ## Working tree
-- Branch: `main` (both repos), clean and in sync with origin.
-- `report_genius` → `03a0bfa`; `report-genius-solo` → `66376da`.
+- Branch: `main` (both repos), clean and in sync with origin. No open PRs.
+- `report_genius` → `ea7cae0`; `report-genius-solo` → `0a1b9da`.
 - Uncommitted diff: this wrap's `CLAUDE.md` + `HANDOFF.md` edits only.
 
 ## Key paths
-- `~/report-genius-solo/src/lib/run-prompt.ts` — batching (`BATCH_SIZE = 5`),
-  prompt assembly, response parsing. The heart of the new app.
-- `~/report-genius-solo/scripts/roundtrip-check.ts` — `npm run check`.
+- `~/report-genius-solo/` — the splinter; it has its own HANDOFF.md now.
 - `frontend/scripts/pii-probe.ts` — `npm run check:pii`, the privacy guard.
 - `frontend/src/lib/stateless/localApi.ts` — the 1,252-line Prisma-API
   impersonator that motivated the whole splinter. Still live here.
@@ -71,8 +76,10 @@ automated check can substitute for.
   `prompt-builder.ts`, `llm-types.ts`/`types.ts`, `report-text.ts`,
   `discipline-library.ts`). A fix to any of them belongs in both. This is the
   deliberate cost of the clean break.
-- **Never give an alias lookup a fallback to the raw name.** That is exactly the
-  bug fixed this session, and it reads as safe while leaking.
+- **Never give an alias lookup a fallback to the raw name.** It reads as safe
+  while leaking; fixed 2026-08-23 in both repos.
+- **Code changes go branch + PR, never straight to `main`.** Session-wrap doc
+  commits are the only carve-out. Confirmed by the user 2026-08-24.
 - The solo app is `output: "export"`, so it **cannot serve HTTP headers** — the
   CSP and security headers live in its `vercel.json` and must be ported by hand to
   any other host.

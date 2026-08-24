@@ -4,7 +4,8 @@
 
 ### Sibling product: Report Genius Solo (`~/report-genius-solo`)
 - A standalone splinter of session-only mode lives in its own repo, `Alcb4/report-genius-solo` (deployed: https://report-genius-solo.vercel.app). One run, no class, no session, no account; a six-step wizard over `localStorage`; export is the browser's print dialog, so it is a **fully static export with no backend**.
-- It **ports five files verbatim** from here and they must stay in sync — a change to any of them belongs in both repos: `lib/alias-core.ts`, `lib/adapters/llm/prompt-builder.ts`, `lib/adapters/llm/types.ts`, `lib/report-text.ts`, `lib/stateless/discipline-library.ts`.
+- It **ports five files verbatim** from here and they must stay in sync — a change to any of them belongs in both repos: `lib/alias-core.ts`, `lib/adapters/llm/prompt-builder.ts`, `lib/adapters/llm/types.ts`, `lib/report-text.ts`, `lib/stateless/discipline-library.ts`. Verify with a diff, not by memory — e.g. `diff <(sed 's|from "../../services/alias.service"|X|; s|} from "./types";|Y|' frontend/src/lib/adapters/llm/prompt-builder.ts) <(sed 's|from "./alias-core"|X|; s|} from "./llm-types";|Y|' ~/report-genius-solo/src/lib/prompt-builder.ts)`. Confirmed in sync 2026-08-24.
+- The **prompt names the student once** (Rule 6/7 `NAME AND PRONOUNS`). Reports previously read "he… his… he" throughout. The model only ever sees the alias and writes `Student_01`; `replaceAliasesInText` substitutes the real first name on parse — so this is not a privacy change.
 - This repo's stateless mode was deliberately **left in place**, not deleted, so nothing here breaks while the splinter is evaluated. Retiring it is a separate decision.
 
 ### Vercel deployment
