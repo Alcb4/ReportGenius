@@ -238,7 +238,11 @@ function buildHeader(
 
   rules.push(
     ``,
-    `${pronounRule}. PRONOUNS`,
+    `${pronounRule}. NAME AND PRONOUNS`,
+    `   Use the student's name EXACTLY ONCE, in the opening sentence,`,
+    `   written exactly as it appears in their block.`,
+    `   Refer to them by pronoun everywhere else — do not repeat the name,`,
+    `   and do not open every report with the same sentence pattern.`,
     `   Use the student's specified pronouns consistently throughout.`,
     `   Never switch pronouns mid-report.`,
     ``,
@@ -269,6 +273,9 @@ function buildHeader(
       `${lastRule}. PRIVACY — STUDENT ALIASES`,
       `   Students are identified by aliases (Student_01, Student_02, etc.).`,
       `   Use the provided student aliases exactly as written.`,
+      `   The alias IS the student's name: write it once in the opening`,
+      `   sentence as required above, exactly as given (e.g. "Student_01 has`,
+      `   approached the term…"). It is substituted for the real name later.`,
       `   Do not output real names.`,
       `   Do not invent new aliases.`,
       `   Return structured JSON in this format:`,
